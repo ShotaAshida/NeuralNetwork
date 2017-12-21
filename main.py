@@ -70,7 +70,7 @@ indexmax = np.where(finout == finout.max())[0][0]
 print(indexmax)
 
 
-# 課題2
+# 課題2 ######################################
 # ミニバッチ
 batch = 100
 choice = np.random.choice(len(X), batch, replace=False)
@@ -91,16 +91,63 @@ crossave = np.average(entropy)
 print(crossave)
 
 
-# 課題3
+# 課題3 ######################################
 # ソフトマックス + 損失関数 の逆伝播　w2, b2の導出
 aen_ay = (minifinout - (np.eye(10)[minianswer]).T) / batch
+print(aen_ay)
+print(minimidout)
 aen_ax = weight2.T.dot(aen_ay)
 aen_aw2 = aen_ay.dot(minimidout.T)
 aen_ab2 = np.sum(aen_ay, axis=1)
 
 # シグモイドの逆伝播 W1, b1の導出
 aen_ay1 = sigmoid.difsigmoid(aen_ax)
-ae_ax1 = weight1.T.dot(aen_ay1)
+aen_ax1 = weight1.T.dot(aen_ay1)
 aen_aw1 = aen_ay1.dot(minidata.T)
 aen_ab1 = np.sum(aen_ay1, axis=1)
 
+
+# 学習 ################################
+batch = 100
+loop = int(len(X) / batch * 50)
+percent = 0.01
+for n in range(loop):
+    print(str(n) + "回目")
+    print(aen_aw2)
+    weight1 = weight1 - (percent * aen_aw1)
+    weight2 = weight2 - (percent * aen_aw2)
+    b1 = b1 - (percent * aen_ab1)
+    b2 = b2 - (percent * aen_ab2)
+
+    choice = np.random.choice(len(X), batch, replace=False)
+    minidata = np.reshape(X[choice], (batch, row * row))
+    minidata = minidata.T
+    minianswer = Y[choice]
+
+    # ミニバッチにニューラル適用
+    minimidinput = weight1.dot(minidata)
+    minimidout = sigmoid.sigmoid(minimidinput)
+    minifininput = weight2.dot(minimidout)
+    minifinout = softmax.softmax(minifininput)
+
+    # クロスエントロピー
+    minilogs = np.log(minifinout) * -1
+    entropy = CrossEntropy.cross(minilogs, minianswer)
+    crossave = np.average(entropy)
+    print("誤差　" + str(crossave))
+
+    # 課題3
+    # ソフトマックス + 損失関数 の逆伝播　w2, b2の導出
+    aen_ay = (minifinout - (np.eye(10)[minianswer]).T) / batch
+    print(aen_ay)
+    print("minimidout")
+    print(minimidout)
+    aen_ax = weight2.T.dot(aen_ay)
+    aen_aw2 = aen_ay.dot(minimidout.T)
+    aen_ab2 = np.sum(aen_ay, axis=1)
+
+    # シグモイドの逆伝播 W1, b1の導出
+    aen_ay1 = sigmoid.difsigmoid(aen_ax)
+    aen_ax1 = weight1.T.dot(aen_ay1)
+    aen_aw1 = aen_ay1.dot(minidata.T)
+    aen_ab1 = np.sum(aen_ay1, axis=1)
