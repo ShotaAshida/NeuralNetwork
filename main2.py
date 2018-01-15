@@ -23,7 +23,7 @@ batch = 100
 # batch = 5
 
 # 学習
-loop = int((len(X) / batch) * 100)
+loop = int((len(X) / batch) * 30)
 # loop = 10
 percent = 0.01
 
@@ -80,7 +80,7 @@ aen_ab1 = np.zeros((middle, 1))
 
 # 学習 ####################################
 for n in range(loop):
-    print(str(n) + "回目")
+    # print(str(n) + "回目")
     # print((n * batch) % 60000)
     # print(((n + 1) * batch) % 60000)
 
@@ -114,9 +114,9 @@ for n in range(loop):
 
     # クロスエントロピー
     entropy = funcs.cross(finout, answer, end)
-    # if n * batch % 60000 == 0:
-    #     print(str(n) + "回目")
-    #     print(entropy)
+    if n * batch % 60000 == 0:
+        print(str(n) + "回目")
+        print(entropy)
 
 
     # 逆伝播1
@@ -181,12 +181,12 @@ for n in range(loop):
     # print("kotae")
     # print(finout.argmax(axis=0))
 
-    print("entropy")
-    print(entropy)
-    print(" ")
-    print(" ")
+    # print("entropy")
+    # print(entropy)
+    # print(" ")
+    # print(" ")
 
-# print("save")
-# np.savez("parameters.npz", w1=weight1, w2=weight2, b1=b1, b2=b2)
-# np.savetxt('weight1.csv', weight1, delimiter=',')
-# np.savetxt('weight2.csv', weight2, delimiter=',')
+print("save")
+np.savez("parameters.npz", w1=weight1, w2=weight2, b1=b1, b2=b2)
+np.savetxt('weight1.csv', weight1, delimiter=',')
+np.savetxt('weight2.csv', weight2, delimiter=',')

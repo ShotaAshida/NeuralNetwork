@@ -11,7 +11,7 @@ print(a.max(axis=0))
 mndata = MNIST("/Users/omushota/ex4-image/le4nn")
 X, Y = mndata.load_testing()
 X = np.array(X)
-X = X.reshape((X.shape[0], 28, 28)) / 255
+X = X.reshape((X.shape[0], 28, 28))
 Y = np.array(Y)
 
 weightfile = np.load('parameters.npz')
@@ -25,10 +25,11 @@ loop = int(len(X) / batch)
 counter = 0
 for n in range(loop):
     if ((n + 1) * batch) % 10000 != 0:
-        learn = np.reshape(X[(n * batch) % 10000: ((n + 1) * batch) % 10000:], (row * row, batch))
+        learn = np.reshape(X[(n * batch) % 10000: ((n + 1) * batch) % 10000:], (batch, row * row)).T
         answer = Y[(n * batch) % 10000: ((n + 1) * batch) % 10000:]
+        # print(answer)
     else:
-        learn = np.reshape(X[(n * batch) % 10000: 10000:], (row * row, batch))
+        learn = np.reshape(X[(n * batch) % 10000: 10000:], (batch, row * row)).T
         answer = Y[(n * batch) % 10000: 10000:]
 
     # 中間層################################
@@ -59,9 +60,13 @@ for n in range(loop):
     # ソフトマックス
     finout = softmax.softmax(fininput)
     indexmax = finout.argmax(axis=0)
+    print("answer")
+    print(answer)
+    print("indexmax")
+    print(indexmax)
+
     power = indexmax - answer
     counter = counter + len(np.where(power == 0)[0])
-    print(counter)
 
-print((counter / 10000) * 100)
+print((counter / 10000.0) * 100.0)
 
