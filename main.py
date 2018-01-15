@@ -14,6 +14,9 @@ X = np.array(X)
 X = X.reshape((X.shape[0], 28, 28))
 Y = np.array(Y)
 
+a = np.array([[1, 2], [3, 4]])
+
+
 # キーボード入力待ち
 while True:
     strnum = input("input number : ")
@@ -27,6 +30,7 @@ indata = X[num]
 line = X.shape[0]
 row = X.shape[1]
 indata = np.reshape(indata, (row * row, 1))
+
 
 
 # 中間層################################
@@ -45,6 +49,7 @@ b1 = np.reshape(b1, (middle, 1))
 
 # 中間層への入力
 midinput = weight1.dot(indata) + b1
+
 
 # シグモイド
 midout = sigmoid.sigmoid(midinput)
@@ -121,8 +126,15 @@ for n in range(loop):
     b2 = b2 - (percent * aen_ab2)
 
     # 学習データ
-    lndata = np.reshape(X[n * batch:(n + 1) * batch:], (row * row, batch))
-    lnanswer = Y[n * batch:(n + 1) * batch:]
+    if ((n + 1) * batch) % 60000 != 0:
+        lndata = np.reshape(X[(n * batch) % 60000: ((n + 1) * batch) % 60000:], (row * row, batch))
+        lnanswer = Y[(n * batch) % 60000: ((n + 1) * batch) % 60000:]
+    else :
+        lndata = np.reshape(X[(n * batch) % 60000: 60000:], (row * row, batch))
+        lnanswer = Y[(n * batch) % 60000: 60000:]
+
+    # lndata = np.reshape(X[0: 100:], (row * row, batch))
+    # lnanswer = Y[0: 100:]
 
     # ミニバッチにニューラル適用
     lnmidinput = weight1.dot(lndata) + b1
