@@ -66,7 +66,10 @@ for n in range(loop):
     print(indexmax)
 
     power = indexmax - answer
+    print("power")
+    print(power)
     counter = counter + len(np.where(power == 0)[0])
+    print(counter)
 
 print((counter / 10000.0) * 100.0)
 
