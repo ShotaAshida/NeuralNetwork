@@ -9,5 +9,5 @@ def softmax(a):
     sum_exp_a = np.sum(exp_a, axis=0)
     # 要素の値/全体の要素の合計
     y = exp_a / sum_exp_a
-    # print(y)
+
     return y

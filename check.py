@@ -1,12 +1,8 @@
 import sigmoid
 import softmax
-import CrossEntropy
-import math
 import numpy as np
 from mnist import MNIST
 
-a = np.array([[1, 2], [3, 4]])
-print(a.max(axis=0))
 
 mndata = MNIST("/Users/omushota/ex4-image/le4nn")
 X, Y = mndata.load_testing()
@@ -14,7 +10,7 @@ X = np.array(X)
 X = X.reshape((X.shape[0], 28, 28))
 Y = np.array(Y)
 
-weightfile = np.load('parameters.npz')
+weightfile = np.load('parameters2.npz')
 
 line = X.shape[0]
 row = X.shape[1]
@@ -60,16 +56,15 @@ for n in range(loop):
     # ソフトマックス
     finout = softmax.softmax(fininput)
     indexmax = finout.argmax(axis=0)
-    print("answer")
-    print(answer)
-    print("indexmax")
-    print(indexmax)
+    # print("answer")
+    # print(answer)
+    # print("indexmax")
+    # print(indexmax)
 
     power = indexmax - answer
-    print("power")
-    print(power)
+    # print("power")
+    # print(power)
     counter = counter + len(np.where(power == 0)[0])
     print(counter)
 
 print((counter / 10000.0) * 100.0)
-
