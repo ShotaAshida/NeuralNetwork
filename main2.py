@@ -19,7 +19,7 @@ batch = 100
 # batch = 5
 
 # 学習
-epoch = 10
+epoch = 30
 loop = int((len(X) / batch) * epoch)
 # loop = 10
 
@@ -109,20 +109,20 @@ for n in range(loop):
     indexmax = finout.argmax(axis=0)
     power = indexmax - answer
 
-    print("answer")
-    print(answer)
-    print("indexmax")
-    print(indexmax)
+    # print("answer")
+    # print(answer)
+    # print("indexmax")
+    # print(indexmax)
     # print("power")
     # print(power)
 
     # クロスエントロピー
     entropy = funcs.cross(finout, answer, end)
-    # if n * batch % 60000 == 0:
-    print(str(n) + "回目")
-    print(entropy)
-    print(" ")
-    print(" ")
+    if n * batch % 60000 == 0:
+        print(str(n) + "回目")
+        print(entropy)
+        print(" ")
+        print(" ")
 
     # 逆伝播1
     aen_ay2 = (finout - np.eye(end)[answer].T) / batch
