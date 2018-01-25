@@ -28,3 +28,18 @@ def sigmoid(x):
     if x >= sigmoid_range:
         return 1.0 - 1e-15
     return 1.0 / (1.0 + np.exp(-x))
+
+
+@np.vectorize
+def ReLU(x):
+    if x > 0:
+        return x
+    else:
+        return 0.0
+
+@np.vectorize
+def dif_ReLU(x):
+    if x > 0:
+        return 1
+    else:
+        return 0

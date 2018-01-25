@@ -19,17 +19,9 @@ batch = 100
 # batch = 5
 
 # 学習
-loop = int((len(X) / batch) * 25)
+epoch = 10
+loop = int((len(X) / batch) * epoch)
 # loop = 10
-
-# RMSPROP
-# percent = 0.001
-# p = 0.90
-# e = 0.00000001
-# hw1 = 0
-# hw2 = 0
-# hb1 = 0
-# hb2 = 0
 
 # 重み1
 middle = 300
@@ -46,29 +38,17 @@ weight1 = np.reshape(weight1, (middle, row * row))
 b1 = np.random.normal(average, variance1, middle)
 b1 = np.reshape(b1, (middle, 1))
 
-# print("weight1")
-# print(weight1)
-# print("b1")
-# print(b1)
-
 # 重み2
 end = 10
 # end = 2
 variance2 = 1.0 / middle
-# variance2 = 1 / 300
-# print(variance2)
+
 
 weight2 = np.random.normal(average, variance2, middle * end)
 weight2 = np.reshape(weight2, (end, middle))
 b2 = np.random.normal(average, variance2, end)
 b2 = np.reshape(b2, (end, 1))
 
-# print("weight2")
-# print(weight2)
-# print("b2")
-# print(b2)
-# print(" ")
-# print(" ")
 
 # 傾き
 aen_ay2 = np.zeros((end, batch))
@@ -80,6 +60,7 @@ aen_ay1 = np.zeros((middle, batch))
 aen_ax1 = np.zeros((row*row, batch))
 aen_aw1 = np.zeros((middle, row*row))
 aen_ab1 = np.zeros((middle, 1))
+
 
 # 学習方法
 # # adam
@@ -113,14 +94,13 @@ for n in range(loop):
     if ((n + 1) * batch) % 60000 != 0:
         learn = np.reshape(X[(n * batch) % 60000: ((n + 1) * batch) % 60000:], (batch, row * row)).T
         answer = Y[(n * batch) % 60000: ((n + 1) * batch) % 60000:]
-        # print(answer)
     else:
         learn = np.reshape(X[(n * batch) % 60000: 60000:], (batch, row * row)).T
         answer = Y[(n * batch) % 60000: 60000:]
-        # print(answer)
+
     # 中間層
     midin = weight1.dot(learn) + b1
-    midout = funcs.sigmoid(midin)
+    midout = funcs.ReLU(midin)
 
     # 出力層
     finin = weight2.dot(midout) + b2
@@ -129,18 +109,20 @@ for n in range(loop):
     indexmax = finout.argmax(axis=0)
     power = indexmax - answer
 
-    # print("answer")
-    # print(answer)
-    # print("indexmax")
-    # print(indexmax)
+    print("answer")
+    print(answer)
+    print("indexmax")
+    print(indexmax)
     # print("power")
     # print(power)
 
     # クロスエントロピー
     entropy = funcs.cross(finout, answer, end)
-    if n * batch % 60000 == 0:
-        print(str(n) + "回目")
-        print(entropy)
+    # if n * batch % 60000 == 0:
+    print(str(n) + "回目")
+    print(entropy)
+    print(" ")
+    print(" ")
 
     # 逆伝播1
     aen_ay2 = (finout - np.eye(end)[answer].T) / batch
@@ -149,7 +131,12 @@ for n in range(loop):
     aen_ab2 = np.reshape(np.sum(aen_ay2, axis=1), (end, 1))
 
     # 逆伝播2
-    aen_ay1 = aen_ax2 * ((1 - midout) * midout)
+
+    # sigmoid
+    # aen_ay1 = aen_ax2 * ((1 - midout) * midout)
+
+    # ReLU
+    aen_ay1 = aen_ax2 * funcs.dif_ReLU(midin)
     aen_ax1 = weight1.T.dot(aen_ay1)
     aen_aw1 = aen_ay1.dot(learn.T)
     aen_ab1 = np.reshape(np.sum(aen_ay1, axis=1), (middle, 1))
@@ -196,17 +183,6 @@ for n in range(loop):
     # print(b2)
 
     # 重み修正
-    # RMSprop
-    # weight1 -= (percent / (math.sqrt(hw1 + e))) * aen_aw1
-    # b1 -= (percent / (math.sqrt(hb1 + e))) * aen_ab1
-    # weight2 -= (percent / (math.sqrt(hw2 + e))) * aen_aw2
-    # b2 -= (percent / (math.sqrt(hb2 + e))) * aen_ab2
-    #
-    # hw1 = p * hw1 + (1 - p) * np.average(aen_aw1 * aen_aw1)
-    # hb1 = p * hb1 + (1 - p) * np.average(aen_ab1 * aen_ab1)
-    # hw2 = p * hw2 + (1 - p) * np.average(aen_aw2 * aen_aw2)
-    # hb2 = p * hb2 + (1 - p) * np.average(aen_ab2 * aen_ab2)
-
     # adam
     m_w1 = beta1 * m_w1 + (1 - beta1) * aen_aw1
     v_w1 = beta2 * v_w1 + (1 - beta2) * aen_aw1 * aen_aw1
@@ -232,11 +208,12 @@ for n in range(loop):
     v_b2_dash = v_b2 / (1 - beta2 ** (n + 1))
     b2 -= alpha * m_b2_dash / (np.sqrt(v_b2_dash) + e)
 
+    # print("entropy")
     # print(entropy)
     # print(" ")
     # print(" ")
 
 print("save")
-np.savez("parameters2.npz", w1=weight1, w2=weight2, b1=b1, b2=b2)
-np.savetxt('weight1-2.csv', weight1, delimiter=',')
-np.savetxt('weight2-2.csv', weight2, delimiter=',')
+np.savez("parameters3.npz", w1=weight1, w2=weight2, b1=b1, b2=b2)
+np.savetxt('weight1-3.csv', weight1, delimiter=',')
+np.savetxt('weight2-3.csv', weight2, delimiter=',')

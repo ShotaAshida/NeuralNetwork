@@ -1,5 +1,4 @@
-import sigmoid
-import softmax
+import funcs
 import numpy as np
 from mnist import MNIST
 
@@ -10,7 +9,7 @@ X = np.array(X)
 X = X.reshape((X.shape[0], 28, 28))
 Y = np.array(Y)
 
-weightfile = np.load('parameters2.npz')
+weightfile = np.load('parameters3.npz')
 
 line = X.shape[0]
 row = X.shape[1]
@@ -40,7 +39,7 @@ for n in range(loop):
     midinput = weight1.dot(learn) + b1
 
     # シグモイド
-    midout = sigmoid.sigmoid(midinput)
+    midout = funcs.ReLU(midinput)
 
     # 出力層##################################
     # 定数
@@ -54,12 +53,12 @@ for n in range(loop):
     fininput = weight2.dot(midout) + b2
 
     # ソフトマックス
-    finout = softmax.softmax(fininput)
+    finout = funcs.softmax(fininput)
     indexmax = finout.argmax(axis=0)
-    # print("answer")
-    # print(answer)
-    # print("indexmax")
-    # print(indexmax)
+    print("answer")
+    print(answer)
+    print("indexmax")
+    print(indexmax)
 
     power = indexmax - answer
     # print("power")
