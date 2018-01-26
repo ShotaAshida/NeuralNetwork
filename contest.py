@@ -9,7 +9,6 @@ with open("/Users/omushota/ex4-image/le4MNIST_X.dump","rb") as f:
     X = pickle.load(f, encoding='bytes')
     X = X.reshape((X.shape[0], 28, 28))
     X = X.reshape((X.shape[0], 28 * 28))
-    print(X.shape)
 
 weightfile = np.load('parameters.npz')
 
@@ -23,11 +22,8 @@ counter = 0
 for n in range(loop):
     if ((n + 1) * batch) % 10000 != 0:
         learn = np.reshape(X[(n * batch) % 10000: ((n + 1) * batch) % 10000:], (batch, row * row)).T
-        answer = Y[(n * batch) % 10000: ((n + 1) * batch) % 10000:]
-        # print(answer)
     else:
         learn = np.reshape(X[(n * batch) % 10000: 10000:], (batch, row * row)).T
-        answer = Y[(n * batch) % 10000: 10000:]
 
     # 中間層################################
     # 定数
@@ -57,15 +53,3 @@ for n in range(loop):
     # ソフトマックス
     finout = softmax.softmax(fininput)
     indexmax = finout.argmax(axis=0)
-    print("answer")
-    print(answer)
-    print("indexmax")
-    print(indexmax)
-
-    power = indexmax - answer
-    print("power")
-    print(power)
-    counter = counter + len(np.where(power == 0)[0])
-    print(counter)
-
-print((counter / 10000.0) * 100.0)
