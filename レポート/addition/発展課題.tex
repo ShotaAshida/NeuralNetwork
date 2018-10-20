@@ -1,0 +1,233 @@
+\documentclass{ujarticle}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{listings}
+\usepackage{nccmath}
+\lstset{%
+  language={Python},
+  breaklines=true
+}
+\usepackage{geometry}
+\geometry{left=25mm,right=25mm,top=30mm,bottom=30mm}
+
+\title {発展課題レポート}
+
+\author{情報学科 計算機コース 1029275871 芦田聖太}
+
+\date{提出日　18/1/26}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\thispagestyle{empty}
+\end{titlepage}
+
+
+
+\section*{発展課題}
+\begin{itemize}
+\item コンテスト参加
+\item ReLU関数の導入とadamへの変更
+\end{itemize}
+
+\section{コンテスト参加}
+\subsection{設計方針}
+\begin{itemize}
+\item コンテストデータの読み込み
+\item 結果のファイルの書き込み
+\end{itemize}
+
+\subsection{実装とプログラムの説明}
+\subsubsection{コンテストデータの読み込み}
+テキスト通りにpickleを使って、コンテストデータを読み込んだ。\\
+contest.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+with open("/Users/omushota/ex4-image/le4MNIST_X.dump","rb") as f:
+    X = pickle.load(f, encoding='bytes')
+    X1 = X.reshape((X.shape[0], 28, 28))
+    X = X.reshape((X.shape[0], 28 * 28))
+    print(X.shape[1])
+\end{lstlisting}
+
+\subsubsection{結果のファイルの書き込み}
+評価結果列indexmaxをsavetxtを使いkaitou\_sgdに保存した。\\
+contest.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+np.savetxt("kaitou_sgd.txt", indexmax, fmt="%d")
+\end{lstlisting}
+
+\subsection{考察}
+adamで改良したものより最初の設計であるsgdの方が良い精度で認識ができた。しかし、学習速度はadamの方が早かった。学習速度と正答率は完全に比例するわけではないようである。畳み込みには手をだすことができなかったが、畳み込みするとどの程度認識率があがるのかも調べてみたい。
+
+\subsection{contest.py全文}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+import pickle
+import sigmoid
+import softmax
+import numpy as np
+import matplotlib.pyplot as plt
+from pylab import cm
+
+# python 3 系の場合は import pickle としてください．
+with open("/Users/omushota/ex4-image/le4MNIST_X.dump","rb") as f:
+    X = pickle.load(f, encoding='bytes')
+    X1 = X.reshape((X.shape[0], 28, 28))
+    X = X.reshape((X.shape[0], 28 * 28))
+    print(X.shape[1])
+
+weightfile = np.load('parameters2.npz')
+
+line = X.shape[0]
+row = X.shape[1]
+batch = 10000
+loop = int(len(X) / batch)
+
+counter = 0
+for n in range(loop):
+    print(str(n) + "回目")
+    if ((n + 1) * batch) % 10000 != 0:
+        learn = np.reshape(X[(n * batch) % 10000: ((n + 1) * batch) % 10000:], (batch, row)).T
+        # print(answer)
+    else:
+        learn = np.reshape(X[(n * batch) % 10000: 10000:], (batch, row)).T
+
+    # 中間層################################
+    # 定数
+    middle = 300
+
+    # 重み1
+    weight1 = weightfile['w1']
+    b1 = weightfile['b1']
+
+    # 中間層への入力
+    midinput = weight1.dot(learn) + b1
+
+    # シグモイド
+    midout = sigmoid.sigmoid(midinput)
+
+    # 出力層##################################
+    # 定数
+    end = 10
+
+    # 重み2
+    weight2 = weightfile['w2']
+    b2 = weightfile['b2']
+
+    # 出力層への入力
+    fininput = weight2.dot(midout) + b2
+
+    # ソフトマックス
+    finout = softmax.softmax(fininput)
+    indexmax = finout.argmax(axis=0)
+    print("indexmax")
+    print(indexmax)
+
+np.savetxt("kaitou_sgd.txt", indexmax, fmt="%d")
+\end{lstlisting}
+
+\section{ReLU関数とadam}
+\subsection{設計方針}
+\begin{itemize}
+\item ReLU関数とReLUの逆伝播の設計
+\item ニューラル内への導入
+\item 重みの修正の仕方の変更（adam）
+\end{itemize}
+
+\subsection{実装とプログラムの説明}
+\subsubsection{ReLU関数とReLUの逆伝播の設計}
+ReLU関数の定義より、入力が0より大きい時は入力をそのまま出力し、その他の場合は0を返す関数を作成した。また、その逆伝播では入力が0より大きい時は1,その他の場合は0を返す。行列が入力された場合は各要素ごとに計算されるようにvectorizeしている。\\
+funcs.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+@np.vectorize
+def ReLU(x):
+    if x > 0:
+        return x
+    else:
+        return 0.0
+        
+@np.vectorize
+def dif_ReLU(x):
+    if x > 0:
+        return 1
+    else:
+        return 0
+\end{lstlisting}
+
+
+
+\subsubsection{ニューラル内に導入}
+もともとsigmoidで計算していた部分をReLUに変更するだけである。逆伝播の部分も、dif\_ReLUを用いるだけである。\\
+main2.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# 中間層
+midout = funcs.ReLU(midin)
+
+# 逆伝播2
+aen_ay1 = aen_ax2 * funcs.dif_ReLU(midin)
+\end{lstlisting}
+
+\subsubsection{重みの修正方法の変更(adam)}
+\begin{fleqn}[30pt]
+\begin{eqnarray}
+t &=& t + 1\\
+m &=& \beta_1 m + (1 - \beta_1)\frac{\partial E_n}{\partial W}\\
+v &=& \beta_2 v + (1 - \beta_2) \frac{\partial E_n}{\partial W} \circ \frac{\partial E_n}{\partial W}\\
+\hat{m} &=& \frac{m}{1 - \beta^t_1}\\
+\hat{v} &=& \frac{v}{1 - \beta^t_2}\\
+W_t &=& W_{(t-1)} - \frac{\alpha \hat{m} }{ \sqrt{\hat{v}} + \epsilon}
+\end{eqnarray}
+\end{fleqn}
+
+以上の5つの式の規則のもと重みの更新を行う。w1, w2, b1, b2のそれぞれについて同じ手順で更新を行う。ハイパーパラメータの初期値はプログラムの最初に書かれた初期値の部分に表されている値を用いた。tで表している部分はプログラム中ではnを用いて表されている。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+#初期値
+alpha = 0.001
+beta1 = 0.9
+beta2 = 0.999
+e = 0.00000001
+
+    # 重み修正
+    # adam
+    m_w1 = beta1 * m_w1 + (1 - beta1) * aen_aw1
+    v_w1 = beta2 * v_w1 + (1 - beta2) * aen_aw1 * aen_aw1
+    m_w1_dash = m_w1 / (1 - beta1 ** (n + 1))
+    v_w1_dash = v_w1 / (1 - beta2 ** (n + 1))
+    weight1 -= alpha * m_w1_dash / (np.sqrt(v_w1_dash) + e)
+
+    m_b1 = beta1 * m_b1 + (1 - beta1) * aen_ab1
+    v_b1 = beta2 * v_b1 + (1 - beta2) * aen_ab1 * aen_ab1
+    m_b1_dash = m_b1 / (1 - beta1 ** (n + 1))
+    v_b1_dash = v_b1 / (1 - beta2 ** (n + 1))
+    b1 -= alpha * m_b1_dash / (np.sqrt(v_b1_dash) + e)
+
+    m_w2 = beta1 * m_w2 + (1 - beta1) * aen_aw2
+    v_w2 = beta2 * v_w2 + (1 - beta2) * aen_aw2 * aen_aw2
+    m_w2_dash = m_w2 / (1 - beta1 ** (n + 1))
+    v_w2_dash = v_w2 / (1 - beta2 ** (n + 1))
+    weight2 -= alpha * m_w2_dash / (np.sqrt(v_w2_dash) + e)
+
+    m_b2 = beta1 * m_b2 + (1 - beta1) * aen_ab2
+    v_b2 = beta2 * v_b2 + (1 - beta2) * aen_ab2 * aen_ab2
+    m_b2_dash = m_b2 / (1 - beta1 ** (n + 1))
+    v_b2_dash = v_b2 / (1 - beta2 ** (n + 1))
+    b2 -= alpha * m_b2_dash / (np.sqrt(v_b2_dash) + e)
+\end{lstlisting}
+
+
+\subsection{実行結果}
+学習を行い、check.pyで正答率を調べたところ。
+以下のような実行結果が得られた。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# 正答率
+96.89999999999999
+\end{lstlisting}
+
+
+\subsection{考察}
+\subsubsection{工夫点}
+ReLU関数をvectorizeで定義することで、mainのプログラムを見やすくすることができた。さらに、ReLU関数では学習速度が今までの倍程度になった。また、定数をうまく定義することでadamの部分を簡単に処理することができた。
+
+\subsubsection{問題点}
+正答率が以前より下がってしまっている。画像の認識にはある程度の限界があるようではあるが、他の発展課題をしてみるともう少し正答率があがるのかもしれない。
+
+\end{document}

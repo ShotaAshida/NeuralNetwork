@@ -1,0 +1,172 @@
+\documentclass{ujarticle}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{listings}
+\usepackage{nccmath}
+\lstset{%
+  language={Python},
+  breaklines=true
+}
+\usepackage{geometry}
+\geometry{left=25mm,right=25mm,top=30mm,bottom=30mm}
+
+\title {課題4レポート}
+
+\author{情報学科 計算機コース 1029275871 芦田聖太}
+
+\date{提出日　18/1/26}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\thispagestyle{empty}
+\end{titlepage}
+
+
+
+\section*{課題4}
+\section*{手書き数字画像識別器の構築}
+\subsection*{仕様}
+\begin{itemize}
+\item パラメータの読み込み
+\item 入力したインデックスのデータを評価
+\item テスト画像全体の正答率を表示
+\end{itemize}
+
+
+\section{設計方針}
+以下の5つの項目を実装することで仕様を満たすことにした。
+\begin{itemize}
+\item 画像読み込み
+\item 評価する画像のインデックス入力
+\item パラメータ読み込み
+\item テストデータ全体の評価
+\item 入力したインデックスの評価結果と解答を表示
+\item テストデータの正答率の計算と表示
+\end{itemize}
+
+\section{実装とプログラムの説明}
+\subsection{画像読み込み}
+この部分の実装は課題1とほとんど変わっていない。変数の名前をわかりやすくするために、learnとanswerに付け替えた。learnは(784, 10000)の行列で各列に10000個の画像データがそれぞれ含まれている。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# テストデータ
+mndata = MNIST("/Users/omushota/ex4-image/le4nn")
+X, Y = mndata.load_testing()
+X = np.array(X)
+X = X.reshape((X.shape[0], 28, 28))
+Y = np.array(Y)
+
+# 定数設定
+line = X.shape[0]
+row = X.shape[1]
+
+# テスト
+learn = np.reshape(np.array(X), (line, row * row)).T
+answer = Y
+\end{lstlisting}
+
+
+\subsection{評価する画像のインデックス入力}
+この部分は課題１と全く同じなので説明は省略する。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# 入力受け取り
+while True:
+    strnum = input("input number : ")
+    print("")
+    num = int(strnum)
+    if (num < 0) or (num > 9999):
+        print("Please type 0 ~ 9999")
+    else:
+        break
+\end{lstlisting}
+
+\subsection{パラメータ読み込み}
+np.loadで重みを保存したファイルをweightfileに読み込む。w1, b1, w2, b2という名前で各パラメータを保存していたので、weightfile['w1']などで重みをそれぞれ読み込む。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# パラメータの読み込み
+weightfile = np.load('parameters.npz')
+
+# 重み1
+weight1 = weightfile['w1']
+b1 = weightfile['b1']
+
+# 重み2
+weight2 = weightfile['w2']
+b2 = weightfile['b2']
+\end{lstlisting}
+
+\subsection{テストデータ全体の評価}
+この部分も以前の課題で説明している部分なので説明は省略する。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# 中間層################################
+# 定数
+middle = 300
+
+# 中間層への入力
+midinput = weight1.dot(learn) + b1
+
+# シグモイド
+midout = funcs.sigmoid(midinput)
+
+# 出力層##################################
+# 定数
+end = 10
+
+# 出力層への入力
+fininput = weight2.dot(midout) + b2
+
+# ソフトマックス
+finout = funcs.softmax(fininput)
+\end{lstlisting}
+
+\subsection{入力したインデックスの評価結果と解答を表示}
+indexmaxにテストデータ全体の評価結果を格納し、その中から入力したインデックスの答えを取り出す。ansも同様にして、解答を取り出している。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+indexmax = finout.argmax(axis=0)
+Tindexmax = indexmax[num]
+ans = Y[num]
+
+print("結果 ")
+print(Tindexmax)
+print("答え ")
+print(ans)
+print("")
+\end{lstlisting}
+
+\subsection{テストデータの正答率の計算と表示}
+powerには10000個のデータの評価結果列と解答列を各要素で引き算をしたものを格納する。powerのなかで、0になっている部分の数を数えることで正解数を数える。最後に正答率を計算して表示している。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+power = indexmax - Y
+counter = len(np.where(power == 0)[0])
+
+print("10000 枚の正答率")
+print((counter / 10000.0) * 100.0)
+\end{lstlisting}
+
+
+
+\section{実行結果}
+以下のような実行結果が得られる。入力画像の評価結果と答えを表示し、さらに97.2\%の正答率が得られた。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+input number : 10
+
+# 結果 
+0
+
+# 答え 
+0
+
+10000 枚の正答率
+97.2
+\end{lstlisting}
+
+
+\section{考察}
+\subsection{工夫点}
+学習がうまく進んでいるかを知るために正答率を測定する機能をつけた。その過程で、同時に入力したindexの画像の評価結果も表示することができた。ただ、10000枚のデータを扱うので処理速度が心配された。そこで、10000個のデータを一つの行列にすることで計算を早くするようにした。評価結果の返ってくるスピードがfor文を使うと非常に遅くなってしまっていたため、(784, 10000)の行列で全てのテストデータを表すことで、効率化を測った。\\
+
+\subsection{問題点}
+10000枚のデータを行列にして効率化をはかったが、まだ少し時間が長く感じられる。ニューラルネットの部分で関数を多く使っているからかもしれない。そのあたりをもう少し効率よくできれば、評価が早くなると思われる。
+
+
+\end{document}

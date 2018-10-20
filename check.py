@@ -55,10 +55,10 @@ for n in range(loop):
     # ソフトマックス
     finout = funcs.softmax(fininput)
     indexmax = finout.argmax(axis=0)
-    print("answer")
-    print(answer)
-    print("indexmax")
-    print(indexmax)
+    # print("answer")
+    # print(answer)
+    # print("indexmax")
+    # print(indexmax)
 
     power = indexmax - answer
     # print("power")
@@ -66,4 +66,5 @@ for n in range(loop):
     counter = counter + len(np.where(power == 0)[0])
     print(counter)
 
+print("正答率")
 print((counter / 10000.0) * 100.0)
