@@ -1,0 +1,106 @@
+\documentclass{ujarticle}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{listings}
+\lstset{%
+  language={Python},
+  breaklines=true
+}
+\usepackage{geometry}
+\geometry{left=25mm,right=25mm,top=30mm,bottom=30mm}
+
+\title {課題2レポート}
+
+\author{情報学科 計算機コース 1029275871 芦田聖太}
+
+\date{提出日　18/1/11}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\thispagestyle{empty}
+\end{titlepage}
+
+
+\section*{課題2}
+\section{ミニバッチ対応＆クロスエントロピー誤差の計算}
+ミニバッチを入力可能とするように改良し，さらにクロスエントロピー誤差を計算するプログラムを作成する。
+
+\subsection*{仕様}
+\begin{itemize}
+\item MNISTのテスト画像10000枚の中からランダムにB枚をミニバッチとして取り出す。
+\item クロスエントロピー誤差の平均を標準出力に出力する。
+\item ニューラルネットワークの構造、重みは課題 1 と同じ。
+\item バッチサイズ B は自由に決める。（今回は100にする）
+\item ミニバッチを取り出す処理はランダムに行う。
+\end{itemize}
+
+
+\section{設計方針}
+今回の設計では主に以下の3つのパートを構成することで、仕様を満たすことにした。
+\begin{itemize}
+\item ミニバッチを選択する
+\item ミニバッチをニューラルネットワークに適用する
+\item クロスエントロピーを計算する。
+\end{itemize}
+各パートについては実装とプログラムの説明の部分で詳しく解説していく。
+
+\section{実装とプログラムの説明}
+\subsection{ミニバッチを選択する}
+np.random.choiceで0 ~ 9999の10000個の数字の中からbatchサイズ分の100個を選択する。minidataにXの中から選んだ100個の数字に対応するインデックスの画像データを格納する。minianwserにも対応するインデックスの正解ラベルを格納しておく。
+
+main.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+batch = 100
+choice = np.random.choice(len(X), batch, replace=False)
+minidata = np.reshape(X[choice], (batch, row*row))
+minidata = minidata.T
+minianswer = Y[choice]
+\end{lstlisting}
+
+
+\subsection{ミニバッチをニューラルネットに適用する}
+minidataを中間層への入力を計算する関数midに入力し、出力をminimidinputに格納する。シグモイド関数にminimidinputを入力し、出力をminimidoutに格納する。出力層への入力を計算する関数endendにminimidoutを入力し、出力をminifininputに格納する。最後に、ソフトマックス関数にminifininputを入力し、出力をminifinoutに格納する。以上で、ミニバッチのニューラルネットワークへの適用を完了した。
+
+main.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+minimidinput = mid(minidata, middle, row, average, variance, seed)
+minimidout = sigmoid.sigmoid(minimidinput)
+minifininput = endend(minimidout, end, middle, average1, variance1, seed)
+minifinout = softmax.softmax(minifininput)
+\end{lstlisting}
+
+\subsection{クロスエントロピーを計算}
+aにsoftmax関数の出力を、bに正解ラベルを入力する。hotoneベクトルにするためにnp.eyeを用いて計算のために転地する。aの各要素でlogをとり-1をかけたものとhotoneベクトルを各要素ごとに掛け算を行い、和をとる。最後に、バッチサイズで割り平均をとり出力する。
+
+CrossEntropy.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+def cross(a, b):
+    hotone = np.eye(10)[b].T
+    sum1 = np.sum(hotone * (np.log(a) * -1))
+    ave = sum1 / b.shape[0]
+    return ave
+\end{lstlisting}
+
+main.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+entropy = CrossEntropy.cross(minifinout, minianswer)
+print(entropy)
+\end{lstlisting}
+
+\section{実行結果}
+以下の7.19260653892の部分がクロスエントロピーとなっている。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+input number : 10
+6
+7.19260653892
+\end{lstlisting}
+
+\section{考察}
+\subsection{工夫点}
+ミニバッチの選択をchoiceで行うことでスムーズにミニバッチを選択することができた。また、100個のミニバッチを行列で表すことで、for文を使わずに一回の処理でニューラルネットワークに入力することができたので早く処理を行うことができている。
+
+\subsection{問題点}
+各層への入力をmidやendend関数で処理することでmain.pyから重みが見えなくなっているので、課題3以降ではこの関数を使うことができない。つまりあくまで課題２のための仕様になってしまっているということが後からではあるがわかった。
+
+\end{document}

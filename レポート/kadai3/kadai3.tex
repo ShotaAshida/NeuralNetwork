@@ -1,0 +1,368 @@
+\documentclass{ujarticle}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{listings}
+\usepackage{nccmath}
+\lstset{%
+  language={Python},
+  breaklines=true
+}
+\usepackage{geometry}
+\geometry{left=25mm,right=25mm,top=30mm,bottom=30mm}
+
+\title {課題3レポート}
+
+\author{情報学科 計算機コース 1029275871 芦田聖太}
+
+\date{提出日　18/1/19}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\thispagestyle{empty}
+\end{titlepage}
+
+
+
+\section*{課題3}
+\section{誤差逆伝播による3層ニューラルネットークの学習}
+課題２のコードをベースに3層ニューラルネットワークのパラメータW1, W2, b1, b2を学習プログラムを作成する。
+\subsection*{仕様}
+\begin{itemize}
+\item 学習にはMNISTの学習データ60000枚を使用する。
+\item バッチサイズは100。
+\item 繰り返し回数、学習率は自由に設定する。
+\item 各エポック終了毎にクロスエントロピー誤差を標準出力に出力する。
+\item 学習終了時に学習したパラメータをファイルに保存する。
+\end{itemize}
+
+
+\section{設計方針}
+\begin{itemize}
+\item 定数の設定
+\item バッチの選択
+\item バックプロパゲーション
+\item エポック終了時のクロスエントロピーの表示
+\item 学習終了時のパラメータのファイルへの書き込み
+\end{itemize}
+以上の5つの項目に関して、前回の課題2から変更を加えた。
+３層のニューラルネットワークの構成や、入力データに関しては前回から変更は加えていない。
+
+\section{実装とプログラムの説明}
+\subsection{定数の設定}
+ニューラルネットに関しての定数はこれまでと変わっていないので、学習に関しての定数だけ説明を加えておく。loopは学習回数で、len(X) / batchで１エポックの学習回数600回を表しているので、学習回数は30エポックである。percentは学習率を表しており、0.01にしている。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# 学習
+loop = int((len(X) / batch) * 30)
+percent = 0.01
+\end{lstlisting}
+
+\subsection{バッチの選択}
+60000枚の画像データの前から順に100枚ずつ選び学習データとして使用する。
+場合分けを行なっているのは、繰り返し回数が600に達したときにうまく学習データを取り出すためである。
+
+main2.py
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+    if ((n + 1) * batch) % 60000 != 0:
+        learn = np.reshape(X[(n * batch) % 60000: ((n + 1) * batch) % 60000:], (batch, row * row)).T
+        answer = Y[(n * batch) % 60000: ((n + 1) * batch) % 60000:]
+    else:
+        learn = np.reshape(X[(n * batch) % 60000: 60000:], (batch, row * row)).T
+        answer = Y[(n * batch) % 60000: 60000:]
+\end{lstlisting}
+
+
+\subsection{バックプロパゲーション}
+\begin{itemize}
+\item クロスエントロピーとソフトマックスの逆伝播\mbox{}\\
+$a_k$をソフトマックス関数のC個の入力のk番目の要素、$y^{(2)}_k$はソフトマックス関数のC個の出力のk番目の要素である。クロスエントロピー誤差は$y^{(2)}_k$を入力にとりEを返す。また、$y_k$はone-hot vector表記の解答のk番目の要素であり、Bはバッチサイズを表している。$En$は$E$の平均である。
+\setlength{\abovedisplayskip}{5pt} % 上部のマージン
+\begin{fleqn}[30pt]
+\begin{equation}
+\frac{\partial E_n}{\partial a_k} = \frac{y^{(2)}_k - y_k}{B}
+\end{equation}
+\end{fleqn}
+
+\item 全結合層の逆伝播\mbox{}\\
+ベクトル$x$を入力として行列$W$とベクトル$b$とする。このとき$y = W x + b$を出力する関数を考える。B個のベクトル$x_1, x_2, ... x_B$を各列に持つ行列を$X$とする。また、$x_1, x_2, ... x_B$に対する出力であるB個のベクトルをそれぞれ$y_1, y_2, ... y_B$とするとき、$\frac{\partial E_n}{\partial y_i}$を各列に持つ行列を$\frac{\partial E_n}{\partial Y}$とする。
+\begin{fleqn}[30pt]
+\begin{eqnarray}
+\frac{\partial E_n}{\partial X} = W^T \frac{\partial E_n}{\partial Y}\\
+\frac{\partial E_n}{\partial W} = \frac{\partial E_n}{\partial Y}X^T \\
+\frac{\partial E_n}{\partial X} = W^T \frac{\partial E_n}{\partial Y}
+\end{eqnarray}
+\end{fleqn}
+
+\item シグモイド関数の逆伝播\mbox{}\\
+シグモイド関数をaで表すと、
+シグモイド関数自体の微分は以下のようになる。
+\begin{fleqn}[30pt]
+\begin{equation}
+a(t)' = (1 - a(t))a(t)
+\end{equation}
+\end{fleqn}
+シグモイド関数への入力ベクトルのうちの1つの要素を$t$とすると、逆伝播は以下の式で表される。
+\begin{fleqn}[30pt]
+\begin{equation}
+\frac{\partial E_n}{\partial t} = \frac{\partial E_n}{\partial a(t)} \frac{\partial a(t)}{\partial t}
+\end{equation}
+\end{fleqn}
+実際には、B個のベクトル$x_1, x_2, ... x_B$を各列に持つ行列を$X$が入力となるのでこの計算は各要素毎に行われることになる。
+
+\end{itemize}
+
+
+以上の3つの項目を実現したのが以下のコードとなる。逆伝播1というのが、クロスエントロピー+ソフトマックスの逆伝播と中間層と出力層の間の全結合の逆伝播を表してる。次に逆伝播2というのが、シグモイド関数の逆伝播と入力層と中間層の全結合の逆伝播を表している。\\
+answer : 解答、finout : ソフトマックス関数の出力、batch : バッチサイズ、midout : シグモイド関数の出力、learn : 入力行列、weight1とweight2 : 重み、end : 出力層の数、middle : 中間層の数
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+    # 逆伝播1
+    aen_ay2 = (finout - np.eye(end)[answer].T) / batch
+    aen_ax2 = weight2.T.dot(aen_ay2)
+    aen_aw2 = aen_ay2.dot(midout.T)
+    aen_ab2 = np.reshape(np.sum(aen_ay2, axis=1), (end, 1))
+
+    # 逆伝播2
+    aen_ay1 = aen_ax2 * ((1 - midout) * midout)
+    aen_ax1 = weight1.T.dot(aen_ay1)
+    aen_aw1 = aen_ay1.dot(learn.T)
+    aen_ab1 = np.reshape(np.sum(aen_ay1, axis=1), (middle, 1))
+
+    # 重み修正
+    weight1 -= percent * aen_aw1
+    b1 -= percent * aen_ab1
+    weight2 -= percent * aen_aw2
+    b2 -= percent * aen_ab2
+\end{lstlisting}
+
+\subsection{クロスエントロピーの表示}
+nは学習回数を表しており、60000の学習データを網羅する毎に、表示するように設定している。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# クロスエントロピー
+    entropy = funcs.cross(finout, answer, end)
+    if n * batch % 60000 == 0:
+        print(str(n) + "回目")
+        print(entropy)
+\end{lstlisting}
+
+\subsection{パラメータの保存}
+np.savezを使い、すべてのパラメータを1つのファイルに保存した。また、np.savetxtを用いて保存されているパラメータを確認できるようにした。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+# パラメータの保存
+print("save")
+np.savez("parameters.npz", w1=weight1, w2=weight2, b1=b1, b2=b2)
+np.savetxt('weight1.csv', weight1, delimiter=',')
+np.savetxt('weight2.csv', weight2, delimiter=',')
+\end{lstlisting}
+
+
+\section{実行結果}
+実行結果を以下に示す。1回の学習で100のデータを扱うため、600回でちょうど1エポックとなる。最初、クロスエントロピーの平均値は約2.23となるが600回の学習で0.255まで抑えることができている。そこから多少の上下はあるが、着実に誤差を減らすことができており30エポックで約0.050付近で落ち着いた。
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+0 回目
+2.29753145973
+
+600 回目
+0.255184237804
+
+1200 回目
+0.194213906587
+
+1800 回目
+0.168603437976
+
+2400 回目
+0.157386061456
+
+3000 回目
+0.130301105324
+
+3600 回目
+0.120298183322
+
+4200 回目
+0.111763262959
+
+4800 回目
+0.101924064509
+
+5400 回目
+0.0973306610888
+
+6000 回目
+0.102313912085
+
+6600 回目
+0.0909826454486
+
+7200 回目
+0.0924376689691
+
+7800 回目
+0.0808173999405
+
+8400 回目
+0.080460494789
+
+9000 回目
+0.0803265560274
+
+9600 回目
+0.0826512117024
+
+10200 回目
+0.0689447874985
+
+10800 回目
+0.0695081780207
+
+11400 回目
+0.0777434063435
+
+12000 回目
+0.0629360379799
+
+12600 回目
+0.0670838369799
+
+13200 回目
+0.0632502479807
+
+13800 回目
+0.0672145942555
+
+14400 回目
+0.0584590187365
+
+15000 回目
+0.0559522828233
+
+15600 回目
+0.0588288039049
+
+16200 回目
+0.047666561674
+
+16800 回目
+0.051013089824
+
+17400 回目
+0.0499271202031
+\end{lstlisting}
+
+
+\section{考察}
+\subsection{工夫点}
+過学習を避けるために学習回数を30エポックにした。30エポックで学習した結果、テスト画像の正答率が$97.2\%$で、50エポックで学習した結果が$97.37\%$であった。正答率がほぼ変わらないのであれば汎用性が高い方が良いと考えたため、30エポックのパラメータを保存した。
+
+\subsection{問題点}
+3層ニューラルネットワークをテキスト通り作り、コンテストに出してみたが64.84\%とあまり高い値は出なかった。発展課題である畳み込み層の設計を行うとかなり認識度が上がるようなので、取り組んでみたいと思う。
+
+\section{コード全文}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+import funcs
+import numpy as np
+from mnist import MNIST
+
+mndata = MNIST("/Users/omushota/ex4-image/le4nn")
+X, Y = mndata.load_training()
+X = np.array(X)
+X = X.reshape((X.shape[0], 28, 28))
+Y = np.array(Y)
+
+# 定数 ##############################
+# 入力データ関連
+line = X.shape[0]
+row = X.shape[1]
+
+# バッチ
+batch = 100
+
+# 学習
+loop = int((len(X) / batch) * 30)
+percent = 0.01
+
+# 重み1
+middle = 300
+average = 0
+variance1 = 1.0 / (row * row)
+seed = 1
+np.random.seed(seed)
+
+weight1 = np.random.normal(average, variance1, (row * row * middle))
+weight1 = np.reshape(weight1, (middle, row * row))
+b1 = np.random.normal(average, variance1, middle)
+b1 = np.reshape(b1, (middle, 1))
+
+# 重み2
+end = 10
+variance2 = 1.0 / middle
+
+weight2 = np.random.normal(average, variance2, middle * end)
+weight2 = np.reshape(weight2, (end, middle))
+b2 = np.random.normal(average, variance2, end)
+b2 = np.reshape(b2, (end, 1))
+
+# 傾き
+aen_ay2 = np.zeros((end, batch))
+aen_ax2 = np.zeros((middle, batch))
+aen_aw2 = np.zeros((end, middle))
+aen_ab2 = np.zeros((end, 1))
+
+aen_ay1 = np.zeros((middle, batch))
+aen_ax1 = np.zeros((row*row, batch))
+aen_aw1 = np.zeros((middle, row*row))
+aen_ab1 = np.zeros((middle, 1))
+
+
+# 学習 ####################################
+for n in range(loop):
+    # バッチ選択
+    if ((n + 1) * batch) % 60000 != 0:
+        learn = np.reshape(X[(n * batch) % 60000: ((n + 1) * batch) % 60000:], (batch, row * row)).T
+        answer = Y[(n * batch) % 60000: ((n + 1) * batch) % 60000:]
+    else:
+        learn = np.reshape(X[(n * batch) % 60000: 60000:], (batch, row * row)).T
+        answer = Y[(n * batch) % 60000: 60000:]
+
+    # 中間層
+    midin = weight1.dot(learn) + b1
+    midout = funcs.sigmoid(midin)
+
+    # 出力層
+    finin = weight2.dot(midout) + b2
+    finout = funcs.softmax(finin)
+
+    # クロスエントロピー
+    entropy = funcs.cross(finout, answer, end)
+    if n * batch % 60000 == 0:
+        print(str(n) + " 回目")
+        print(entropy)
+
+    # 逆伝播1
+    aen_ay2 = (finout - np.eye(end)[answer].T) / batch
+    aen_ax2 = weight2.T.dot(aen_ay2)
+    aen_aw2 = aen_ay2.dot(midout.T)
+    aen_ab2 = np.reshape(np.sum(aen_ay2, axis=1), (end, 1))
+
+    # 逆伝播2
+    aen_ay1 = aen_ax2 * ((1 - midout) * midout)
+    aen_ax1 = weight1.T.dot(aen_ay1)
+    aen_aw1 = aen_ay1.dot(learn.T)
+    aen_ab1 = np.reshape(np.sum(aen_ay1, axis=1), (middle, 1))
+
+    # 重み修正
+    weight1 -= percent * aen_aw1
+    b1 -= percent * aen_ab1
+    weight2 -= percent * aen_aw2
+    b2 -= percent * aen_ab2
+
+
+# パラメータの保存
+print("save")
+np.savez("parameters.npz", w1=weight1, w2=weight2, b1=b1, b2=b2)
+np.savetxt('weight1.csv', weight1, delimiter=',')
+np.savetxt('weight2.csv', weight2, delimiter=',')
+\end{lstlisting}
+
+\end{document}

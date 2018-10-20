@@ -1,3 +1,7 @@
 {
+<<<<<<< HEAD
     "python.pythonPath": "/Users/omushota/.pyenv/versions/3.6.3/bin/python"
+=======
+    "python.pythonPath": "/Users/omushota/.pyenv/versions/3.6.3/bin/python3.6"
+>>>>>>> additional
 }
